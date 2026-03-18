@@ -191,18 +191,14 @@ class SaveImageWithMetaDataUniversal:
                         "max": 999999999,
                         "step": 1,
                         "tooltip": (
-                            "When method is 'By node ID', this specifies which sampler node to treat as "
-                            "authoritative for Steps/CFG/etc."
+                            "When method is 'By node ID', this specifies which sampler node to treat as " "authoritative for Steps/CFG/etc."
                         ),
                     },
                 ),
                 "file_format": (
                     cls.SAVE_FILE_FORMATS,
                     {
-                        "tooltip": (
-                            "Image format for output. PNG retains full metadata; JPEG/WebP may strip or "
-                            "re-encode some fields."
-                        ),
+                        "tooltip": ("Image format for output. PNG retains full metadata; JPEG/WebP may strip or " "re-encode some fields."),
                     },
                 ),
             },
@@ -251,8 +247,7 @@ class SaveImageWithMetaDataUniversal:
                     {
                         "default": True,
                         "tooltip": (
-                            "Automatically append an incrementing counter to avoid overwriting existing files "
-                            "with the same prefix."
+                            "Automatically append an incrementing counter to avoid overwriting existing files " "with the same prefix."
                         ),
                     },
                 ),
@@ -260,10 +255,7 @@ class SaveImageWithMetaDataUniversal:
                     "BOOLEAN",
                     {
                         "default": False,
-                        "tooltip": (
-                            "Add a Civitai-compatible sampler notation (if enabled) for better import fidelity on "
-                            "Civitai."
-                        ),
+                        "tooltip": ("Add a Civitai-compatible sampler notation (if enabled) for better import fidelity on " "Civitai."),
                     },
                 ),
                 "guidance_as_cfg": (
@@ -280,8 +272,7 @@ class SaveImageWithMetaDataUniversal:
                     "EXTRA_METADATA",
                     {
                         "tooltip": (
-                            "Additional metadata key-value pairs from the Create Extra MetaData node to include in "
-                            "the saved image."
+                            "Additional metadata key-value pairs from the Create Extra MetaData node to include in " "the saved image."
                         )
                     },
                 ),
@@ -297,8 +288,7 @@ class SaveImageWithMetaDataUniversal:
                     {
                         "default": False,
                         "tooltip": (
-                            "Include a compact aggregated LoRAs summary line (set False to list only individual "
-                            "Lora_X entries)."
+                            "Include a compact aggregated LoRAs summary line (set False to list only individual " "Lora_X entries)."
                         ),
                     },
                 ),
@@ -319,8 +309,9 @@ class SaveImageWithMetaDataUniversal:
                     {
                         "default": "none",
                         "tooltip": (
-                            "Artifact hashing log: filename=short, path=full, detailed=resolution+sidecar, "
-                            "debug=+candidates+full hash."[:140]
+                            "Artifact hashing log: filename=short, path=full, detailed=resolution+sidecar, " "debug=+candidates+full hash."[
+                                :140
+                            ]
                         ),
                     },
                 ),
@@ -329,11 +320,12 @@ class SaveImageWithMetaDataUniversal:
                     {
                         "default": False,
                         "tooltip": (
-                            "When enabled, A1111-style LoRA designation is added to the positive prompt text "
-                            "so that Civitai can recognize LoRA strengths."
+                            "When enabled, A1111-style LoRA designations (e.g. <lora:name:strength>) are appended "
+                            "to the positive prompt text and Lora hashes are included in metadata so that Civitai "
+                            "can recognize LoRA strengths."
                         ),
                     },
-                ),
+                )
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
@@ -363,15 +355,15 @@ class SaveImageWithMetaDataUniversal:
         save_workflow_json=False,
         add_counter_to_filename=True,
         civitai_sampler=False,
+        lora_strengths_in_prompt=False,
         max_jpeg_exif_kb=60,
-        extra_metadata={},
+        extra_metadata=None,
         prompt=None,
         extra_pnginfo=None,
         save_workflow_image=True,
-        include_lora_summary=True,
+        include_lora_summary=False,
         guidance_as_cfg=False,
-        suppress_missing_class_log=False,
-        lora_strengths_in_prompt=False,
+        suppress_missing_class_log=True,
     ):
         """Save images to disk with embedded metadata.
 
@@ -405,7 +397,7 @@ class SaveImageWithMetaDataUniversal:
             max_jpeg_exif_kb (int, optional): The maximum size of the EXIF data
                 in kilobytes for JPEGs. Defaults to 60.
             extra_metadata (dict, optional): Additional metadata to be included.
-                Defaults to {}.
+                Defaults to None.
             prompt (dict, optional): The workflow prompt. Injected by ComfyUI.
                 Defaults to None.
             extra_pnginfo (dict, optional): Additional PNG info. Injected by
@@ -413,11 +405,11 @@ class SaveImageWithMetaDataUniversal:
             save_workflow_image (bool, optional): Whether to save the workflow
                 data within the image metadata. Defaults to True.
             include_lora_summary (bool, optional): Whether to include a summary
-                of LoRAs in the metadata. Defaults to True.
+                of LoRAs in the metadata. Defaults to False.
             guidance_as_cfg (bool, optional): Whether to treat guidance as CFG
                 scale. Defaults to False.
             suppress_missing_class_log (bool, optional): Whether to suppress
-                warnings about missing node classes. Defaults to False.
+                warnings about missing node classes. Defaults to True.
             lora_strengths_in_prompt (bool, optional): Add A1111-style LoRA
                 designation to positive prompt so that Civitai can recognize LoRA
                 strengths.
@@ -426,6 +418,8 @@ class SaveImageWithMetaDataUniversal:
             dict: A dictionary containing the UI data and the result, which
                 includes the original images for passthrough.
         """
+        if extra_metadata is None:
+            extra_metadata = {}
         # Refresh definitions each run with smarter merge order. We pass a set
         # of classes seen from the SaveImage node back through the graph so the
         # loader can decide if user JSON is needed or defaults+ext suffice.

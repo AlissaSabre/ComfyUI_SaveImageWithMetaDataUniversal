@@ -6,10 +6,12 @@ It runs the node's EXECUTE method (save_images()) to actually save an image file
 and investigates the saved image file.
 """
 
-import pytest
 import copy
-import torch
+
+import numpy as np
 import piexif
+import piexif.helper
+import pytest
 from PIL import Image
 from PIL.ImageFile import ImageFile
 
@@ -19,6 +21,7 @@ from saveimage_unimeta.capture import Capture
 from saveimage_unimeta.defs.combo import SAMPLER_SELECTION_METHOD
 from saveimage_unimeta.defs.meta import MetaField
 from saveimage_unimeta.nodes.save_image import SaveImageWithMetaDataUniversal, hook
+
 
 def _create_stub_prompt(loras: int) -> dict[str, dict[str, dict[str, object] | str]]:
     """Create and return a prompt for this test.
@@ -132,10 +135,10 @@ def _create_stub_prompt(loras: int) -> dict[str, dict[str, dict[str, object] | s
 
 def _find_node_id_by_class_type(prompt: dict[str, dict[str, object]], class_type: str) -> str:
     """Find the first node of the specified class type in the prompt and return its id."""
-    id = next((id for id, node in prompt.items() if node.get("class_type") == class_type), None)
-    if id is None:
+    node_id = next((nid for nid, node in prompt.items() if node.get("class_type") == class_type), None)
+    if node_id is None:
         raise ValueError(f"{class_type} not found in the prompt.")
-    return id
+    return node_id
 
 def _get_inputs_stub(cls):
     """Return a fixed inputs data for testing to substitute the Capture.get_inputs()."""
@@ -178,7 +181,7 @@ def _get_inputs_stub(cls):
 
 def _create_stub_images():
     """Create a ComfyUI IMAGE data of 1 batch of 16x16 of zeros (black.)"""
-    return torch.zeros(1, 16, 16, 3, dtype=torch.float32, device='cpu')
+    return np.zeros((1, 16, 16, 3), dtype=np.float32)
 
 def _get_parameters(imagefile: ImageFile) -> str:
     """Get the Parameters string out of an image file."""
@@ -220,9 +223,10 @@ _LORA_HASHES_2 = ', Lora hashes: "lora-9: 9999999999, lora-8: 8888888888", '
     ]
 )
 @pytest.mark.parametrize("format", ("png", "jpeg", "webp"))
-def test_save_images_for_lora_strengths_in_prompt(monkeypatch, tmp_path,
-        format, lora_strengths_in_prompt, loras, expected_positive_prompt, expected_lora_hashes):
-    """Test SaveImageWithMetaDataUnivesal.save_images handles lora_strengths_in_prompt."""
+def test_save_images_for_lora_strengths_in_prompt(
+    monkeypatch, tmp_path, format, lora_strengths_in_prompt, loras, expected_positive_prompt, expected_lora_hashes,
+):
+    """Test SaveImageWithMetaDataUniversal.save_images handles lora_strengths_in_prompt."""
 
     # SaveImageWithMetaDataUniversal enters the _test mode_ when invoked in pytest,
     # and it behaves differently from the production environment.
@@ -276,5 +280,5 @@ def test_save_images_for_lora_strengths_in_prompt(monkeypatch, tmp_path,
     else:
         assert expected_lora_hashes in lines[2]
 
-    # and in no case "Lora strength:" should be included in the save file.
-    assert 'lora strengths:' not in lines[2]
+    # and in no case "Lora strengths:" should be included in the save file.
+    assert 'Lora strengths:' not in lines[2]

@@ -44,7 +44,7 @@ def get_lora_model_name(node_id, obj, prompt, extra_data, outputs, input_data):
 def get_lora_model_hash(node_id, obj, prompt, extra_data, outputs, input_data):
     """Selector for LoRA hashes from rgthree's Power Lora Loader."""
     hashes: list[str] = []
-    calc_input = input_data if isinstance(input_data, list) else []
+    calc_input = input_data if isinstance(input_data, list | tuple) else []
     for model_name in get_lora_data(input_data, "lora"):
         if model_name is None:
             continue
@@ -61,19 +61,31 @@ def get_lora_data(input_data, attribute):
     """Helper to extract data from active LoRA inputs on a Power Lora Loader."""
     try:
         batch = input_data[0]
-        results = []
-        for key, value in batch.items():
-            if not key.startswith("lora_"):
-                continue
+    except (TypeError, IndexError, KeyError) as err:
+        logger.debug("[Meta DBG] get_lora_data failed accessing batch for attribute %r: %r", attribute, err)
+        return []
+
+    results = []
+    try:
+        entries = batch.items()
+    except AttributeError as err:
+        logger.debug("[Meta DBG] get_lora_data batch has no items() for attribute %r: %r", attribute, err)
+        return []
+
+    for key, value in entries:
+        if not key.startswith("lora_"):
+            continue
+        try:
             if not value[0]["on"]:
                 continue
             candidate = value[0].get(attribute)
             if candidate is None:
                 continue
             results.append(candidate)
-        return results
-    except Exception:
-        return []
+        except (TypeError, IndexError, KeyError, AttributeError) as err:
+            logger.debug("[Meta DBG] get_lora_data skipping entry %r for attribute %r: %r", key, attribute, err)
+            continue
+    return results
 
 def get_lora_model_name_stack(node_id, obj, prompt, extra_data, outputs, input_data):
     """Selector for LoRA names from rgthree's Lora Loader Stack."""
@@ -84,7 +96,7 @@ def get_lora_model_hash_stack(node_id, obj, prompt, extra_data, outputs, input_d
     """Selector for LoRA hashes from rgthree's Lora Loader Stack."""
     names = select_stack_by_prefix(input_data, "lora_", filter_none=True)
     hashes: list[str] = []
-    calc_input = input_data if isinstance(input_data, list) else []
+    calc_input = input_data if isinstance(input_data, list | tuple) else []
     for model_name in names:
         if model_name is None:
             continue
@@ -176,7 +188,7 @@ def _get_syntax(node_id, input_data) -> _SyntaxData:
     """
     # Candidate textual fields used by rgthree prompt nodes
     candidates = ["prompt", "text", "positive", "clip", "t5", "combined"]
-    if not isinstance(input_data, list) or not input_data:
+    if not isinstance(input_data, list | tuple) or not input_data:
         return {"names": [], "hashes": [], "model_strengths": [], "clip_strengths": []}
     batch = input_data[0]
     if not isinstance(batch, dict):

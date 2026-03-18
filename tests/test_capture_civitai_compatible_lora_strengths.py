@@ -1,6 +1,6 @@
 import re
 import pytest
-from collections.abc import Sequence, Iterable
+from collections.abc import Iterable, Sequence
 
 from saveimage_unimeta.defs.meta import MetaField
 from saveimage_unimeta.capture import Capture
@@ -17,6 +17,7 @@ from saveimage_unimeta.capture import Capture
 def disable_test_mode(monkeypatch):
     """pytest fixture to force METADATA_TEST_MODE='' during a test."""
     monkeypatch.setenv("METADATA_TEST_MODE", "")
+
 
 def _parametrize_with_id(argnames: str | Sequence[str], argvalues: Iterable[Sequence[object]]):
     """Customized pytest.mark.parametrize to use complex data in parameters.
@@ -109,7 +110,7 @@ _inputs2 = {
     ],
     MetaField.LORA_STRENGTH_CLIP: [
         ('n5', 0.7, 1),
-        ('n5', 0.6, 1),
+        ('n6', 0.6, 1),
     ],
 }
 
@@ -179,7 +180,8 @@ class TestGenParametersStr:
         ]
     )
     def test_gen_parameters_str_creates_lora_hashes_if_lora_strengths_in_prompt_is_true(
-            self, inputs_name, lora_hashes):
+        self, inputs_name, lora_hashes,
+    ):
         inputs = {**_inputs[inputs_name]}
         pnginfo = Capture.gen_pnginfo_dict(inputs, inputs, True)
         parameters = Capture.gen_parameters_str(pnginfo, lora_strengths_in_prompt=True)
@@ -199,7 +201,8 @@ class TestGenParametersStr:
         ]
     )
     def test_gen_parameters_str_does_not_create_lora_hashes_if_lora_strengths_in_prompt_is_false(
-            self, inputs_name, lora_hashes):
+        self, inputs_name, lora_hashes,
+    ):
         inputs = {**_inputs[inputs_name]}
         pnginfo = Capture.gen_pnginfo_dict(inputs, inputs, True)
         parameters = Capture.gen_parameters_str(pnginfo, lora_strengths_in_prompt=False)
@@ -218,7 +221,8 @@ class TestGenParametersStr:
         ]
     )
     def test_gen_parameters_str_creates_lora_designations_in_positive_prompt_depending_on_lora_strengths_in_prompt(
-            self, inputs_name, lora_strengths_in_prompt, lora_designations):
+        self, inputs_name, lora_strengths_in_prompt, lora_designations,
+    ):
         inputs = {**_inputs[inputs_name]}
         pnginfo = Capture.gen_pnginfo_dict(inputs, inputs, True)
         parameters = Capture.gen_parameters_str(pnginfo, lora_strengths_in_prompt=lora_strengths_in_prompt)
@@ -237,7 +241,8 @@ class TestGenParametersStr:
         ]
     )
     def test_gen_parameters_str_does_not_create_lora_designations_if_no_positive_prompt(
-            self, inputs_name):
+        self, inputs_name,
+    ):
         inputs = {**_inputs[inputs_name]}
         del inputs[MetaField.POSITIVE_PROMPT]
         pnginfo = Capture.gen_pnginfo_dict(inputs, inputs, True)
@@ -258,9 +263,38 @@ class TestGenParametersStr:
         ]
     )
     def test_gen_parameters_str_never_leaves_lora_strengths_metadata(
-            self, inputs_name, lora_strengths_in_prompt):
+        self, inputs_name, lora_strengths_in_prompt,
+    ):
         inputs = {**_inputs[inputs_name]}
         pnginfo = Capture.gen_pnginfo_dict(inputs, inputs, True)
         parameters = Capture.gen_parameters_str(pnginfo, lora_strengths_in_prompt=lora_strengths_in_prompt)
         found = re.findall(', *Lora strengths:', parameters)
         assert not found
+
+    @_parametrize_with_id(
+        "inputs_name, lora_strengths_in_prompt",
+        [
+            ("inputs0", False),
+            ("inputs0", True),
+            ("inputs1", False),
+            ("inputs1", True),
+            ("inputs2", False),
+            ("inputs2", True),
+        ]
+    )
+    def test_gen_parameters_str_does_not_mutate_pnginfo_dict(
+        self, inputs_name, lora_strengths_in_prompt,
+    ):
+        """Regression: gen_parameters_str must not mutate the caller's pnginfo_dict.
+
+        Previously dict.pop() was called directly on the passed-in dict, silently
+        destroying 'Lora hashes' / 'Lora strengths' for downstream consumers such
+        as logging, filename token substitution, or a second call with different kwargs.
+        """
+        inputs = {**_inputs[inputs_name]}
+        pnginfo = Capture.gen_pnginfo_dict(inputs, inputs, True)
+        pnginfo_before = dict(pnginfo)
+        Capture.gen_parameters_str(pnginfo, lora_strengths_in_prompt=lora_strengths_in_prompt)
+        assert pnginfo == pnginfo_before, (
+            "gen_parameters_str must not modify the caller's pnginfo_dict"
+        )
