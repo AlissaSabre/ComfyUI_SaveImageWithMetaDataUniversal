@@ -111,6 +111,7 @@ CAPTURE_FIELD_LIST = {
         MetaField.SEED: {"field_name": "seed"},
         MetaField.STEPS: {"field_name": "steps"},
         MetaField.CFG: {"field_name": "cfg"},
+        MetaField.DENOISE: {"field_name": "denoise"},
         MetaField.SAMPLER_NAME: {"field_name": "sampler_name"},
         MetaField.SCHEDULER: {"field_name": "scheduler"},
     },
@@ -160,6 +161,7 @@ CAPTURE_FIELD_LIST = {
     "UNETLoader": {
         MetaField.MODEL_NAME: {"field_name": "unet_name"},
         MetaField.MODEL_HASH: {"field_name": "unet_name", "format": calc_unet_hash},
+        MetaField.WEIGHT_DTYPE: {"field_name": "weight_dtype"},
     },
     "RandomNoise": {
         MetaField.SEED: {"field_name": "noise_seed"},
@@ -188,6 +190,18 @@ CAPTURE_FIELD_LIST = {
     "FluxGuidance": {
         MetaField.GUIDANCE: {"field_name": "guidance"},
     },
+    "CFGGuider": {
+        MetaField.CFG: {"field_name": "cfg"},
+    },
+    "PerpNegGuider": {
+        MetaField.CFG: {"field_name": "cfg"},
+    },
+    "Scheduled CFGGuider (Inspire)": {
+        MetaField.CFG: {"field_name": "to_cfg"},
+    },
+    "Scheduled PerpNeg CFGGuider (Inspire)": {
+        MetaField.CFG: {"field_name": "to_cfg"},
+    },
     "BasicScheduler": {
         MetaField.STEPS: {"field_name": "steps"},
         MetaField.SCHEDULER: {"field_name": "scheduler"},
@@ -203,6 +217,16 @@ CAPTURE_FIELD_LIST = {
         MetaField.BASE_SHIFT: {"field_name": "base_shift"},
     },
     "TextEncodeQwenImageEdit": {
+        MetaField.POSITIVE_PROMPT: {
+            "field_name": "prompt",
+            "validate": is_positive_prompt,
+        },
+        MetaField.NEGATIVE_PROMPT: {
+            "field_name": "prompt",
+            "validate": is_negative_prompt,
+        },
+    },
+    "TextEncodeQwenImageEditPlus": {
         MetaField.POSITIVE_PROMPT: {
             "field_name": "prompt",
             "validate": is_positive_prompt,
